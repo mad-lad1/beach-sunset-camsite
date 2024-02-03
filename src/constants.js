@@ -1,1 +1,14 @@
-export const HLS_STREAM = 'https://e1-na7.angelcam.com/cameras/93111/streams/hls/playlist.m3u8?token=eyJjYW1lcmFfaWQiOiI5MzExMSIsImRldmljZV9pZCI6IjkzMTExIiwidGltZSI6MTcwNjk3MjIyMDIxMzgzMiwidGltZW91dCI6MzYwMH0%3D%2E96b71eed94f59b146081acc86705a2962e7c767369fc3c5dc87e882168ca0fb8'
+import axios from 'axios';
+export const extractSource = async () => {
+    try {
+        const apiUrl = `https://us-central1-beachcam-al.cloudfunctions.net/getSource`;
+        const response = await axios.get(apiUrl);
+        const sourceUrl = response.data.sourceUrl;
+        return sourceUrl;
+    } catch (error) {
+        console.error("Error fetching or parsing webpage:", error);
+    }
+    return null;
+};
+
+

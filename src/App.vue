@@ -1,30 +1,52 @@
 <template>
-  <div class="container">
-    <audio ref="audioPlayer" :src="audioFile" loop></audio>
-    <button class="play-button" @click="toggleAudio" :class="{ 'is-muted': isMuted }">
-      <SpeakerXMarkIcon v-if="isMuted" class="icon" />
-      <SpeakerWaveIcon v-else class="icon" />
-    </button>
+  <Suspense>
+    <template #default>
+      <div class="container">
+        <audio ref="audioPlayer" :src="audioFile" loop></audio>
+        <button class="play-button" @click="toggleAudio" :class="{ 'is-muted': isMuted }">
+          <SpeakerXMarkIcon v-if="isMuted" class="icon" />
+          <SpeakerWaveIcon v-else class="icon" />
+        </button>
 
-    <video ref="videoPlayer" autoplay muted loop playsinline class="background-video" :class="{ 'night-mode': isNightTime }"></video>
-    <div class="overlay"></div> <!-- Added overlay for subtle darkening effect -->
-    <div class="content">
-      <div class="time-display">{{ timeDisplay }}</div>
-    </div>
-  </div>
+        <video ref="videoPlayer" autoplay muted loop playsinline class="background-video"
+          :class="{ 'night-mode': isNightTime }"></video>
+        <div class="overlay"></div> <!-- Added overlay for subtle darkening effect -->
+        <div class="content">
+          <div class="time-display">{{ timeDisplay }}</div>
+        </div>
+      </div>
+    </template>
+    <template #fallback>
+      <div>Loading...</div>
+    </template>
+  </Suspense>
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { ref, computed, onBeforeMount } from 'vue';
 import Hls from 'hls.js';
-import { HLS_STREAM } from './constants';
 import audioFile from './assets/beach.mp3';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/vue/24/outline';
+import { extractSource } from './constants';
 
+const HLS_STREAM = ref('');
 const videoPlayer = ref(null);
 const timeDisplay = ref('00:00:00');
 const audioPlayer = ref(null);
 const isMuted = ref(true);
+
+// Define async function to be called inside onBeforeMount or onMounted
+async function initialize() {
+  const hls = await extractSource();
+  HLS_STREAM.value = hls;
+  setupPlayer();
+}
+
+// update the HLS_STREAM ref with new token every hour
+setInterval(async () => {
+  const hls = await extractSource(); // Assuming extractSource is your method to fetch the updated stream URL
+  HLS_STREAM.value = hls;
+}, 3600000);
 
 const isNightTime = computed(() => {
   const hours = new Date().getHours();
@@ -43,16 +65,24 @@ setInterval(() => {
   timeDisplay.value = now.toTimeString().split(' ')[0];
 }, 1000);
 
-onMounted(() => {
+function setupPlayer() {
   if (Hls.isSupported()) {
     const hls = new Hls();
-    hls.loadSource(HLS_STREAM);
+    hls.loadSource(HLS_STREAM.value);
     hls.attachMedia(videoPlayer.value);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.value.play());
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      videoPlayer.value.play();
+    });
   } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
-    videoPlayer.value.src = HLS_STREAM;
-    videoPlayer.value.addEventListener('loadedmetadata', () => videoPlayer.value.play());
+    videoPlayer.value.src = HLS_STREAM.value;
+    videoPlayer.value.addEventListener('loadedmetadata', () => {
+      videoPlayer.value.play();
+    });
   }
+}
+
+onBeforeMount(() => {
+  initialize();
 });
 </script>
 
@@ -64,11 +94,12 @@ onMounted(() => {
   width: 100vw;
   margin: 0;
   padding: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .background-video {
   position: absolute;
   left: 0;
@@ -78,9 +109,11 @@ onMounted(() => {
   object-fit: cover;
   z-index: -1;
 }
+
 .background-video.night-mode {
   filter: brightness(100%);
 }
+
 .overlay {
   position: absolute;
   width: 100%;
@@ -88,11 +121,13 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.4);
   z-index: 0;
 }
+
 .content {
   position: relative;
   z-index: 2;
   text-align: center;
 }
+
 .time-display {
   font-size: 4rem;
   color: white;
@@ -100,6 +135,7 @@ onMounted(() => {
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 10px;
 }
+
 .play-button {
   position: absolute;
   top: 20px;
@@ -110,16 +146,21 @@ onMounted(() => {
   padding: 10px;
   border-radius: 50%;
 }
+
 .icon {
   width: 32px;
   height: 32px;
   color: white;
 }
+
 .icon:hover {
   cursor: pointer;
-  color: #ffcc00; /* Highlight color on hover */
+  color: #ffcc00;
+  /* Highlight color on hover */
 }
+
 .is-muted .icon {
-  color: #777; /* Muted icon color */
+  color: #777;
+  /* Muted icon color */
 }
 </style>
