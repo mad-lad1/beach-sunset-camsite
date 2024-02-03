@@ -1,0 +1,1 @@
+export const HLS_STREAM = 'https://e1-na7.angelcam.com/cameras/93111/streams/hls/playlist.m3u8?token=eyJjYW1lcmFfaWQiOiI5MzExMSIsImRldmljZV9pZCI6IjkzMTExIiwidGltZSI6MTcwNjkyMTk5MjAwNDAwNSwidGltZW91dCI6MzYwMH0%3D%2E51c4c6580f4afcca22f03696b8b9195a09b5896af3ab60bd3e181b96ae9af997'
