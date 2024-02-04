@@ -132,7 +132,6 @@ onBeforeMount(() => {
   font-size: 4rem;
   color: white;
   padding: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.5);
   border-radius: 10px;
 }
 
