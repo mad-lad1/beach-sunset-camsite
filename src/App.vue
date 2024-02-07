@@ -4,6 +4,11 @@
     <!-- Default content to display -->
     <template #default>
       <div class="container">
+        <!-- Stream Selector -->
+        <div class="stream-selector">
+          <button @click="selectStream('sunrise')">Sunrise</button>
+          <button @click="selectStream('sunset')">Sunset</button>
+        </div>
         <!-- Audio player setup -->
         <audio ref="audioPlayer" :src="audioFile" loop></audio>
         <!-- Toggle button for audio with dynamic class for mute/unmute -->
@@ -12,7 +17,6 @@
           <SpeakerXMarkIcon v-if="isMuted" class="icon" />
           <SpeakerWaveIcon v-else class="icon" />
         </button>
-
         <!-- Video player setup with autoplay, mute, and loop attributes -->
         <video ref="videoPlayer" autoplay muted loop playsinline class="background-video"
           :class="{ 'night-mode': isNightTime }"></video>
@@ -31,37 +35,37 @@
 </template>
 
 <script setup>
-/**
- * Script setup for Vue component
- */
-
-// Import statements for Vue, Hls.js, audio file, icons, and constants
-import { ref, computed, onBeforeMount } from 'vue';
+import { ref, computed, onBeforeMount, watch } from 'vue';
 import Hls from 'hls.js';
 import audioFile from './assets/beach.mp3';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/vue/24/outline';
 import { extractSource, sunriseStream, sunsetStream } from './constants';
 
-// Reactive references for HLS stream, video player, time display, audio player, and mute state
 const HLS_STREAM = ref('');
 const videoPlayer = ref(null);
 const timeDisplay = ref('00:00:00');
 const audioPlayer = ref(null);
 const isMuted = ref(true);
+const currentStream = ref('sunrise'); // New reactive variable to store the current stream choice
 
 /**
- * Initializes the video player with HLS stream.
- * Called on component mount.
+ * Initializes the video player with HLS stream based on the current stream choice.
+ * Called on component mount and whenever the current stream changes.
  */
-async function initialize() {
-  const hls = await extractSource(sunriseStream);
+const initialize = async () => {
+  const hls = await extractSource(currentStream.value === 'sunrise' ? sunriseStream : sunsetStream);
   HLS_STREAM.value = hls;
   setupPlayer();
-}
+};
 
-// Periodically update HLS stream every hour
+// Watch the currentStream variable to re-initialize the player when it changes
+watch(currentStream, () => {
+  initialize();
+});
+
+// Periodically update HLS stream every hour, respecting the current stream choice
 setInterval(async () => {
-  const hls = await extractSource(sunriseStream);
+  const hls = await extractSource(currentStream.value === 'sunrise' ? sunriseStream : sunsetStream);
   HLS_STREAM.value = hls;
 }, 3600000);
 
@@ -106,6 +110,11 @@ function setupPlayer() {
   }
 }
 
+// Method to select stream based on user choice
+const selectStream = (streamType) => {
+  currentStream.value = streamType;
+};
+
 // Initialize video player on component mount
 onBeforeMount(() => {
   initialize();
@@ -121,7 +130,6 @@ onBeforeMount(() => {
   width: 100vw;
   margin: 0;
   padding: 0;
-  background: rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -195,5 +203,26 @@ onBeforeMount(() => {
 /* Styling for muted state */
 .is-muted .icon {
   color: #777;
+}
+.stream-selector {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+}
+
+.stream-selector button {
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.stream-selector button:hover {
+  background: rgba(255, 255, 255, 1);
 }
 </style>
